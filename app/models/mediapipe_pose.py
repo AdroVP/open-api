@@ -3,10 +3,14 @@ import numpy as np
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import os
 
 
 class MediaPipe3DPoseEstimator:
     def __init__(self, model_path: str = "pose_landmarker_full.task"):
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"No se encontró el modelo en: {model_path}")
+
         # 1. Configurar las opciones del motor Tasks
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.PoseLandmarkerOptions(
@@ -20,7 +24,7 @@ class MediaPipe3DPoseEstimator:
         # 2. Crear el detector de pose
         self.detector = vision.PoseLandmarker.create_from_options(options)
 
-    def estimate_pose(self, image_bytes: bytes):
+    def predict(self, image_bytes: bytes):
         # Convertir bytes a matriz OpenCV (BGR)
         nparr = np.frombuffer(image_bytes, np.uint8)
         cv_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -73,7 +77,7 @@ class MediaPipe3DPoseEstimator:
                     "name": name,
                     "x": round(float(lm.x), 4),  # Normalizado [0.0, 1.0]
                     "y": round(float(lm.y), 4),  # Normalizado [0.0, 1.0]
-                    "confidence": round(float(lm.visibility if hasattr(lm, 'visibility') else 1.0), 4),
+                    "confidence": round(float(getattr(lm, 'visibility', 1.0)), 4),
                     "coordinates_3d_meters": world_3d
                 })
 

@@ -32,7 +32,7 @@ def read_root():
         "available_models": ["mediapipe", "lightweight3d"]
     }
 
-@app.post("/pose", response_model=PoseResponse, summary="Estimar pose humana desde una imagen")
+@app.post("/pose")
 async def estimate_pose(
     model: ModelName = Query(ModelName.mediapipe, description="Modelo de estimación a utilizar"),
     file: Optional[UploadFile] = File(None, description="Imagen codificada en multipart/form-data"),
@@ -61,6 +61,9 @@ async def estimate_pose(
     try:
         estimator = models[model]
         response = estimator.predict(image_bytes)
-        return response
+        return {"keypoints": response}
+
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al procesar la imagen: {str(e)}")

@@ -19,15 +19,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Descargar el modelo oficial de MediaPipe Tasks
-RUN curl -O https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
+# Descargar los modelos oficiales de MediaPipe Tasks
+RUN curl -O https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task \
+    && curl -O https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite
 
-# Copiar e instalar dependencias de Python
+# Copiar e instalar dependencias de Python (torch CPU para reducir tamaño)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+        "torch==2.6.0+cpu" \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Copiar el código de la aplicación
+# Descargar los pesos del modelo Lightweight 3D
+RUN gdown 1niBUbUecPhKt3GyeDNukobL4OQ3jqssH -O human-pose-estimation-3d.pth
+
+# Copiar el código de la aplicación y los tests
+COPY pytest.ini .
 COPY app/ ./app/
+COPY tests/ ./tests/
 
 # Exponer el puerto del servicio REST API
 EXPOSE 8000

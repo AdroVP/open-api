@@ -1,4 +1,5 @@
 import base64
+import threading
 from enum import Enum
 from typing import Optional
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
@@ -18,11 +19,24 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Carga e inicialización de modelos
-models = {
-    ModelName.mediapipe: MediaPipe3DPoseEstimator(),
-    ModelName.lightweight3d: Lightweight3DPoseEstimator()
+# Carga perezosa (lazy) de modelos: la API arranca aunque falte algún fichero de modelo.
+MODEL_FACTORIES = {
+    ModelName.mediapipe: MediaPipe3DPoseEstimator,
+    ModelName.lightweight3d: Lightweight3DPoseEstimator,
 }
+
+_models = {}
+_models_lock = threading.Lock()
+
+
+def get_model(model: ModelName):
+    if model in _models:
+        return _models[model]
+    with _models_lock:
+        if model not in _models:
+            _models[model] = MODEL_FACTORIES[model]()
+        return _models[model]
+
 
 @app.get("/")
 def read_root():
@@ -32,7 +46,7 @@ def read_root():
         "available_models": ["mediapipe", "lightweight3d"]
     }
 
-@app.post("/pose")
+@app.post("/pose", response_model=PoseResponse)
 async def estimate_pose(
     model: ModelName = Query(ModelName.mediapipe, description="Modelo de estimación a utilizar"),
     file: Optional[UploadFile] = File(None, description="Imagen codificada en multipart/form-data"),
@@ -59,10 +73,14 @@ async def estimate_pose(
         )
 
     try:
-        estimator = models[model]
+        estimator = get_model(model)
         response = estimator.predict(image_bytes)
-        return {"keypoints": response}
+        return response
 
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=f"Modelo no disponible: {str(e)}")
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=f"Modelo no disponible: {str(e)}")
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:

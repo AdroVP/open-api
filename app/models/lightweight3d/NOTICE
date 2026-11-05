@@ -1,0 +1,12 @@
+This product includes software adapted from:
+
+  lightweight-human-pose-estimation-3d-demo.pytorch
+  https://github.com/Daniil-Osokin/lightweight-human-pose-estimation-3d-demo.pytorch
+
+  Copyright (c) 2019 Daniil Osokin / Intel
+  Licensed under the Apache License, Version 2.0
+  https://www.apache.org/licenses/LICENSE-2.0
+
+The files in this directory are a reduced port of that project for
+single-image inference. The original license text is available at:
+https://github.com/Daniil-Osokin/lightweight-human-pose-estimation-3d-demo.pytorch/blob/master/LICENSE

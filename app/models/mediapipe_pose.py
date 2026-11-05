@@ -33,7 +33,7 @@ class MediaPipe3DPoseEstimator:
         self,
         model_path: str = "pose_landmarker_full.task",
         detector_path: str = "efficientdet_lite0.tflite",
-        max_persons: int = 10,
+        max_persons: int = 10, # Cambiar para detectar mas o menos personas
         person_score_threshold: float = 0.3,
         bbox_margin: float = 0.25,
     ):

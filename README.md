@@ -224,7 +224,27 @@ Si se proporcionan ambas, se prioriza la imagen en formato estándar.
 ### Enviar petición
 Después de elegir imagen, pinchar en Execute.
 
-## Desde la terminal
+## Desde la terminal (CLI local)
+
+Ejecuta la inferencia directamente sobre un fichero, sin necesidad de levantar el servidor:
+
+```bash
+python app/main.py --image ruta/imagen.png --model mediapipe --output results/
+```
+
+| Argumento | Alias | Por defecto | Descripción |
+| :--- | :---: | :---: | :--- |
+| `--image` | `-i` | — | Ruta de la imagen a procesar. |
+| `--model` | `-m` | `mediapipe` | `mediapipe` o `lightweight3d`. |
+| `--output` | `-o` | `results/` | Carpeta o fichero `.json` donde guardar el resultado. |
+
+Si `--output` es una carpeta, el resultado se guarda como `<nombre_imagen>_<modelo>.json`. Si se omite `--image`, se arranca el servidor FastAPI:
+
+```bash
+python app/main.py
+```
+
+## Consultar la API por HTTP
 
 #### Windows
 ```

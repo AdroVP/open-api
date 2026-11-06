@@ -9,3 +9,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Resultados generados por la CLI
+results/

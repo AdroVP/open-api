@@ -1,7 +1,14 @@
+import argparse
 import base64
+import sys
 import threading
 from enum import Enum
+from pathlib import Path
 from typing import Optional
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
 from app.schemas import PoseResponse
 from app.models.mediapipe_pose import MediaPipe3DPoseEstimator
@@ -36,6 +43,78 @@ def get_model(model: ModelName):
         if model not in _models:
             _models[model] = MODEL_FACTORIES[model]()
         return _models[model]
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Ejecuta la estimación de pose sobre una imagen y guarda el resultado en JSON."
+    )
+    parser.add_argument(
+        "--image",
+        "-i",
+        type=Path,
+        help="Ruta de la imagen a procesar. Si se omite, arranca el servidor FastAPI.",
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        choices=[model.value for model in ModelName],
+        default=ModelName.mediapipe.value,
+        help="Modelo de estimación a utilizar (por defecto: mediapipe).",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        default=Path("results"),
+        help="Carpeta o fichero .json donde guardar el resultado (por defecto: results/).",
+    )
+    return parser
+
+
+def resolve_output_path(image_path: Path, model: ModelName, output: Path) -> Path:
+    if output.suffix.lower() == ".json":
+        return output
+    return output / f"{image_path.stem}_{model.value}.json"
+
+
+def run_cli(args: argparse.Namespace) -> int:
+    model = ModelName(args.model)
+    image_path = args.image
+
+    if not image_path.is_file():
+        print(f"Error: no se encontró la imagen: {image_path}", file=sys.stderr)
+        return 1
+
+    output_path = resolve_output_path(image_path, model, args.output)
+
+    try:
+        image_bytes = image_path.read_bytes()
+        estimator = get_model(model)
+        response = estimator.predict(image_bytes)
+    except FileNotFoundError as e:
+        print(f"Error: modelo no disponible: {e}", file=sys.stderr)
+        return 1
+    except RuntimeError as e:
+        print(f"Error: modelo no disponible: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: imagen inválida: {e}", file=sys.stderr)
+        return 1
+    except OSError as e:
+        print(f"Error al leer la imagen: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(response.model_dump_json(indent=2), encoding="utf-8")
+    except OSError as e:
+        print(f"Error al guardar el resultado: {e}", file=sys.stderr)
+        return 1
+
+    print(f"Personas detectadas: {response.persons_detected}")
+    print(f"Resultado guardado en: {output_path}")
+    return 0
 
 
 @app.get("/")
@@ -85,3 +164,13 @@ async def estimate_pose(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al procesar la imagen: {str(e)}")
+
+
+if __name__ == "__main__":
+    cli_args = build_arg_parser().parse_args()
+    if cli_args.image:
+        raise SystemExit(run_cli(cli_args))
+
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

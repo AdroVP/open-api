@@ -10,5 +10,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Resultados generados por la CLI
+# Resultados generados por la CLI y el benchmark
 results/
+benchmark/results/

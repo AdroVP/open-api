@@ -244,6 +244,22 @@ Si `--output` es una carpeta, el resultado se guarda como `<nombre_imagen>_<mode
 python app/main.py
 ```
 
+## Benchmark
+
+Mide el tiempo de inferencia y el `confidence` promedio de un modelo:
+
+```bash
+python benchmark/benchmark.py --image assets/Imagen_1.png --model mediapipe --output benchmark/results/
+```
+
+| Argumento | Alias | Por defecto | Descripción |
+| :--- | :---: | :---: | :--- |
+| `--image` | `-i` | — | Ruta de la imagen a procesar (obligatoria). |
+| `--model` | `-m` | `mediapipe` | `mediapipe` o `lightweight3d`. |
+| `--output` | `-o` | `benchmark/results/` | Carpeta o fichero `.json` donde guardar el resultado. |
+
+El tiempo de carga del modelo se mide y se reporta por separado. El resultado principal es el tiempo de inferencia. El `confidence` promedio se calcula solo con los keypoints detectados, ignorando los que tienen `confidence = 0.0`.
+
 ## Consultar la API por HTTP
 
 #### Windows
